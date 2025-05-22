@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 from utils.db import get_jobs, get_candidates, update_candidate_status
-from st_aggrid import AgGrid, GridOptionsBuilder, JsCode
 import base64
 
 def get_download_link(file_path, link_text):
@@ -12,6 +11,43 @@ def get_download_link(file_path, link_text):
     b64 = base64.b64encode(contents).decode()
     href = f'<a href="data:application/octet-stream;base64,{b64}" download="{file_path.split("/")[-1]}">{link_text}</a>'
     return href
+
+def show_candidate_details(candidate):
+    """Show detailed information about a candidate."""
+    st.subheader(f"Candidate: {candidate['name']}")
+    
+    # Basic information
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.write(f"**Email:** {candidate['email']}")
+    with col2:
+        st.write(f"**Phone:** {candidate['phone']}")
+    with col3:
+        st.write(f"**Score:** {candidate['score']:.1f}%")
+    
+    # Resume summary
+    st.markdown("### Resume Summary")
+    st.write(candidate['summary'])
+    
+    # Education
+    if candidate['education']:
+        st.markdown("### Education")
+        st.write(candidate['education'])
+    
+    # Experience
+    if candidate['experience']:
+        st.markdown("### Experience")
+        st.write(candidate['experience'])
+    
+    # Skills
+    if candidate['skills']:
+        st.markdown("### Skills")
+        st.write(candidate['skills'])
+    
+    # Resume download
+    if candidate['resume_path']:
+        st.markdown(f"### Resume")
+        st.markdown(get_download_link(candidate['resume_path'], "Download Resume"), unsafe_allow_html=True)
 
 def show_dashboard(username):
     st.title("Screening Dashboard")
@@ -45,64 +81,81 @@ def show_dashboard(username):
         display_data['passed'] = display_data['passed'].apply(lambda x: "Pass" if x else "Fail")
         display_data['advanced'] = display_data['advanced'].apply(lambda x: "Yes" if x else "No")
         
-        # Add resume link
+        # Add resume link column
         display_data['resume'] = candidates['resume_path'].apply(
             lambda x: get_download_link(x, "Download")
         )
         
-        # Configure grid options
-        gb = GridOptionsBuilder.from_dataframe(display_data)
-        gb.configure_column("id", headerName="ID", hide=True)
-        gb.configure_column("name", headerName="Name", width=150)
-        gb.configure_column("email", headerName="Email", width=200)
-        gb.configure_column("phone", headerName="Phone", width=150)
-        gb.configure_column("score", headerName="Score", width=100)
-        gb.configure_column("passed", headerName="Status", width=100)
-        gb.configure_column("advanced", headerName="Advanced", width=100, editable=True)
-        gb.configure_column("summary", headerName="Summary", width=300)
-        gb.configure_column("resume", headerName="Resume", width=100)
-        
-        # Add checkbox selection
-        gb.configure_selection(selection_mode="multiple", use_checkbox=True)
-        
-        # Configure grid options
-        grid_options = gb.build()
-        
-        # Display the grid
+        # Display the dataframe with native Streamlit components
         st.subheader("Candidates")
-        grid_response = AgGrid(
+        
+        # Use Streamlit's native dataframe with selection
+        selected_indices = st.data_editor(
             display_data,
-            gridOptions=grid_options,
-            update_mode="MODEL_CHANGED",
-            fit_columns_on_grid_load=False,
-            allow_unsafe_jscode=True,
-            enable_enterprise_modules=False,
-            height=400,
-            width="100%"
+            column_config={
+                "id": st.column_config.NumberColumn("ID", required=True),
+                "name": st.column_config.TextColumn("Name"),
+                "email": st.column_config.TextColumn("Email"),
+                "phone": st.column_config.TextColumn("Phone"),
+                "score": st.column_config.TextColumn("Score"),
+                "passed": st.column_config.TextColumn("Status"),
+                "advanced": st.column_config.CheckboxColumn("Advanced"),
+                "summary": st.column_config.TextColumn("Summary"),
+                "resume": st.column_config.Column("Resume", help="Download resume")
+            },
+            hide_index=True,
+            use_container_width=True,
+            disabled=["id", "name", "email", "phone", "score", "passed", "summary", "resume"],
+            key="candidate_table"
         )
         
-        # Get selected rows
-        selected_rows = grid_response["selected_rows"]
+        # Get selected rows for actions
+        if 'candidate_table' in st.session_state and st.session_state.candidate_table:
+            selected_rows = []
+            for idx, row in display_data.iterrows():
+                if row['advanced'] == "Yes":
+                    selected_rows.append({"id": row["id"]})
+            
+            # Actions for selected candidates
+            if selected_rows:
+                st.subheader("Actions")
+                
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    if st.button(f"Update Advanced Status"):
+                        for row in selected_rows:
+                            update_candidate_status(row["id"], True)
+                        
+                        # Also update candidates that were unchecked
+                        for idx, row in display_data.iterrows():
+                            if row['advanced'] == "No":
+                                update_candidate_status(row["id"], False)
+                        
+                        st.success(f"Updated candidate statuses.")
+                        st.experimental_rerun()
         
-        # Actions for selected candidates
-        if selected_rows:
-            st.subheader("Actions")
+        # View candidate details
+        if not candidates.empty:
+            st.subheader("Candidate Details")
+            candidate_ids = candidates['id'].tolist()
+            candidate_names = candidates['name'].tolist()
             
-            col1, col2 = st.columns(2)
+            # Create a dictionary of id: name for the selectbox
+            candidate_options = {str(id): name for id, name in zip(candidate_ids, candidate_names)}
             
-            with col1:
-                if st.button(f"Advance {len(selected_rows)} Selected Candidate(s)"):
-                    for row in selected_rows:
-                        update_candidate_status(row["id"], True)
-                    st.success(f"Advanced {len(selected_rows)} candidate(s) to the next stage.")
-                    st.experimental_rerun()
+            selected_candidate_id = st.selectbox(
+                "Select a candidate to view details",
+                options=list(candidate_options.keys()),
+                format_func=lambda x: candidate_options[x]
+            )
             
-            with col2:
-                if st.button(f"Remove {len(selected_rows)} Selected Candidate(s) from Advanced"):
-                    for row in selected_rows:
-                        update_candidate_status(row["id"], False)
-                    st.success(f"Removed {len(selected_rows)} candidate(s) from advanced stage.")
-                    st.experimental_rerun()
+            if selected_candidate_id:
+                # Get the selected candidate
+                selected_candidate = candidates[candidates['id'] == int(selected_candidate_id)].iloc[0]
+                
+                # Show candidate details
+                show_candidate_details(selected_candidate)
         
         # Summary statistics
         st.subheader("Summary Statistics")
