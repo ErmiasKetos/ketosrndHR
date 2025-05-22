@@ -1,11 +1,12 @@
 streamlit>=1.24.0
 streamlit-authenticator>=0.2.3
+streamlit-aggrid>=0.4.0      # renamed from “st-aggrid”
 sqlalchemy>=1.4.0
 passlib[bcrypt]>=1.7.4
-pdfplumber>=0.8.1
+pdfplumber>=0.11.6
 python-docx>=0.8.11
 python-dateutil>=2.8.2
-st-aggrid>=0.3.2
 pandas>=1.5.0
 openpyxl>=3.0.10
 python-dotenv>=1.0.0
+pyyaml>=6.0                  # for any YAML parsing if you end up using it
