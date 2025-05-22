@@ -83,79 +83,57 @@ def show_dashboard(username):
         
         # Add resume link column
         display_data['resume'] = candidates['resume_path'].apply(
-            lambda x: get_download_link(x, "Download")
+            lambda x: "Download" if x else ""
         )
         
-        # Display the dataframe with native Streamlit components
+        # Display the dataframe
         st.subheader("Candidates")
+        st.dataframe(display_data)
         
-        # Use Streamlit's native dataframe with selection
-        selected_indices = st.data_editor(
-            display_data,
-            column_config={
-                "id": st.column_config.NumberColumn("ID", required=True),
-                "name": st.column_config.TextColumn("Name"),
-                "email": st.column_config.TextColumn("Email"),
-                "phone": st.column_config.TextColumn("Phone"),
-                "score": st.column_config.TextColumn("Score"),
-                "passed": st.column_config.TextColumn("Status"),
-                "advanced": st.column_config.CheckboxColumn("Advanced"),
-                "summary": st.column_config.TextColumn("Summary"),
-                "resume": st.column_config.Column("Resume", help="Download resume")
-            },
-            hide_index=True,
-            use_container_width=True,
-            disabled=["id", "name", "email", "phone", "score", "passed", "summary", "resume"],
-            key="candidate_table"
+        # Advanced status management
+        st.subheader("Update Advanced Status")
+        
+        # Create a selection mechanism
+        selected_candidate = st.selectbox(
+            "Select a candidate to update status",
+            display_data['name'].tolist()
         )
         
-        # Get selected rows for actions
-        if 'candidate_table' in st.session_state and st.session_state.candidate_table:
-            selected_rows = []
-            for idx, row in display_data.iterrows():
-                if row['advanced'] == "Yes":
-                    selected_rows.append({"id": row["id"]})
+        if selected_candidate:
+            # Get the selected candidate's current status
+            selected_idx = display_data[display_data['name'] == selected_candidate].index[0]
+            selected_id = display_data.loc[selected_idx, 'id']
+            current_status = display_data.loc[selected_idx, 'advanced'] == "Yes"
             
-            # Actions for selected candidates
-            if selected_rows:
-                st.subheader("Actions")
-                
-                col1, col2 = st.columns(2)
-                
-                with col1:
-                    if st.button(f"Update Advanced Status"):
-                        for row in selected_rows:
-                            update_candidate_status(row["id"], True)
-                        
-                        # Also update candidates that were unchecked
-                        for idx, row in display_data.iterrows():
-                            if row['advanced'] == "No":
-                                update_candidate_status(row["id"], False)
-                        
-                        st.success(f"Updated candidate statuses.")
-                        st.experimental_rerun()
-        
-        # View candidate details
-        if not candidates.empty:
-            st.subheader("Candidate Details")
-            candidate_ids = candidates['id'].tolist()
-            candidate_names = candidates['name'].tolist()
-            
-            # Create a dictionary of id: name for the selectbox
-            candidate_options = {str(id): name for id, name in zip(candidate_ids, candidate_names)}
-            
-            selected_candidate_id = st.selectbox(
-                "Select a candidate to view details",
-                options=list(candidate_options.keys()),
-                format_func=lambda x: candidate_options[x]
+            # Create a toggle for the status
+            new_status = st.checkbox(
+                "Advanced to Next Stage",
+                value=current_status,
+                key=f"advanced_{selected_id}"
             )
             
-            if selected_candidate_id:
-                # Get the selected candidate
-                selected_candidate = candidates[candidates['id'] == int(selected_candidate_id)].iloc[0]
-                
-                # Show candidate details
-                show_candidate_details(selected_candidate)
+            # Update button
+            if st.button("Update Status"):
+                update_candidate_status(selected_id, new_status)
+                st.success(f"Updated status for {selected_candidate}")
+                st.experimental_rerun()
+        
+        # View candidate details
+        st.subheader("Candidate Details")
+        candidate_to_view = st.selectbox(
+            "Select a candidate to view details",
+            display_data['name'].tolist(),
+            key="view_candidate"
+        )
+        
+        if candidate_to_view:
+            # Get the selected candidate
+            view_idx = display_data[display_data['name'] == candidate_to_view].index[0]
+            view_id = display_data.loc[view_idx, 'id']
+            selected_candidate = candidates[candidates['id'] == view_id].iloc[0]
+            
+            # Show candidate details
+            show_candidate_details(selected_candidate)
         
         # Summary statistics
         st.subheader("Summary Statistics")
