@@ -1,5 +1,4 @@
 import streamlit as st
-from streamlit_option_menu import option_menu
 import os
 import sys
 
@@ -30,13 +29,13 @@ if not authenticated:
 # Main navigation
 with st.sidebar:
     st.image("assets/ketos_logo.png", width=200)
+    st.title("Navigation")
     
-    selected = option_menu(
-        menu_title="Navigation",
-        options=["Job Setup", "Resume Upload", "Screening Dashboard", "NLP Insights", "User Management"],
-        icons=["briefcase", "upload", "table", "graph-up", "people"],
-        menu_icon="cast",
-        default_index=0,
+    # Simple radio button navigation instead of option_menu
+    selected = st.radio(
+        "Select a page",
+        ["Job Setup", "Resume Upload", "Screening Dashboard", "NLP Insights", "User Management"],
+        label_visibility="collapsed"
     )
 
 # Route to the appropriate page based on selection
