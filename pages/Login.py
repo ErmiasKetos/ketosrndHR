@@ -13,12 +13,14 @@ def app():
     st.title("🔒 KETOS Resume Screening - Login")
 
     config = load_auth_config()
+    
     authenticator = stauth.Authenticate(
-        config['usernames'],
+        load_auth_config()["usernames"],
         cookie_name="ketos_auth",
         key="some_random_signature_key",
         cookie_expiry_days=30,
     )
+
 
     name, auth_status, username = authenticator.login("Login", "main")
 
