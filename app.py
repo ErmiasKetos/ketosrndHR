@@ -29,28 +29,34 @@ if not authenticated:
 # Main navigation
 with st.sidebar:
     st.image("assets/ketos_logo.png", width=200)
-    st.title("Navigation")
     
-    # Simple radio button navigation instead of option_menu
-    selected = st.radio(
-        "Select a page",
-        ["Job Setup", "Resume Upload", "Screening Dashboard", "NLP Insights", "User Management"],
-        label_visibility="collapsed"
-    )
+    # Simple navigation with radio buttons
+    pages = ["Job Setup", "Resume Upload", "Screening Dashboard", "NLP Insights", "User Management"]
+    icons = ["📋", "📤", "📊", "🧠", "👥"]
+    
+    st.markdown("## Navigation")
+    
+    for i, (page, icon) in enumerate(zip(pages, icons)):
+        if st.sidebar.button(f"{icon} {page}", key=f"nav_{i}", use_container_width=True):
+            st.session_state.page = page
+    
+    # Initialize page state if not set
+    if "page" not in st.session_state:
+        st.session_state.page = "Job Setup"
 
 # Route to the appropriate page based on selection
-if selected == "Job Setup":
+if st.session_state.page == "Job Setup":
     from pages.job_setup import show_job_setup
     show_job_setup(username)
-elif selected == "Resume Upload":
+elif st.session_state.page == "Resume Upload":
     from pages.upload_and_criteria import show_upload_and_criteria
     show_upload_and_criteria(username)
-elif selected == "Screening Dashboard":
+elif st.session_state.page == "Screening Dashboard":
     from pages.dashboard import show_dashboard
     show_dashboard(username)
-elif selected == "NLP Insights":
+elif st.session_state.page == "NLP Insights":
     from pages.nlp_insights import show_nlp_insights
     show_nlp_insights(username)
-elif selected == "User Management":
+elif st.session_state.page == "User Management":
     from pages.user_management import show_user_management
     show_user_management(username)
