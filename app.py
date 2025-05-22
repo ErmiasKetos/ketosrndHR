@@ -7,7 +7,8 @@ from pages.UploadAndCriteria import app as upload_page
 from pages.Dashboard import app as dashboard_page
 from pages.UserManagement import app as user_mgmt_page
 
-# Page registry\PAGES = {
+# Page registry
+PAGES = {
     "Login": login_page,
     "Job Setup": job_setup_page,
     "Upload & Criteria": upload_page,
