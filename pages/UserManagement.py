@@ -1,43 +1,73 @@
 import streamlit as st
-from utils.db import get_db, User
-from utils.auth import hash_password
+from utils.auth import get_all_users, add_user, delete_user
+import pandas as pd
 
-
-def app():
-    st.title("👥 User Management")
-    st.write("Manage application users (add/remove).")
-
-    db = get_db()
-    users = User.select()
-    # Display existing users
-    user_rows = [{"ID": u.id, "Username": u.username, "Name": u.name} for u in users]
-    st.table(user_rows)
-
+def show_user_management(username):
+    st.title("User Management")
+    
+    # Check if user is admin
+    if username != "admin":
+        st.warning("Only admin users can access this page.")
+        return
+    
+    # Get all users
+    users = get_all_users()
+    
+    # Display users
+    st.subheader("Existing Users")
+    
+    if users:
+        users_df = pd.DataFrame(users)
+        st.dataframe(users_df)
+    else:
+        st.info("No users found.")
+    
+    # Add new user
     st.subheader("Add New User")
-    new_username = st.text_input("Username (email)", key="add_username")
-    new_name = st.text_input("Full Name", key="add_name")
-    new_password = st.text_input("Password", type="password", key="add_password")
-    if st.button("Add User", key="add_user_btn"):
-        if new_username and new_password:
-            hashed = hash_password(new_password)
-            User.create(username=new_username, name=new_name, password=hashed)
-            st.success(f"User '{new_username}' added.")
-            st.experimental_rerun()
-        else:
-            st.error("Please provide both username and password.")
-
+    
+    with st.form("add_user_form"):
+        new_username = st.text_input("Username")
+        new_name = st.text_input("Full Name")
+        new_email = st.text_input("Email")
+        new_password = st.text_input("Password", type="password")
+        
+        submitted = st.form_submit_button("Add User")
+        
+        if submitted:
+            if new_username and new_name and new_email and new_password:
+                # Check if username already exists
+                if any(user['username'] == new_username for user in users):
+                    st.error(f"Username '{new_username}' already exists.")
+                else:
+                    # Add user
+                    success = add_user(new_username, new_name, new_email, new_password)
+                    
+                    if success:
+                        st.success(f"User '{new_username}' added successfully.")
+                        st.experimental_rerun()
+                    else:
+                        st.error("Failed to add user.")
+            else:
+                st.warning("Please fill in all fields.")
+    
+    # Delete user
     st.subheader("Delete User")
-    delete_username = st.selectbox(
-        "Select user to delete", 
-        options=[u.username for u in users],
-        key="delete_username"
-    )
-    if st.button("Delete User", key="del_user_btn"):
-        if delete_username:
-            user_to_del = User.get(User.username == delete_username)
-            user_to_del.delete_instance()
-            st.success(f"User '{delete_username}' deleted.")
-            st.experimental_rerun()
-        else:
-            st.error("No user selected.")
-
+    
+    if users:
+        user_to_delete = st.selectbox(
+            "Select a user to delete",
+            [user['username'] for user in users if user['username'] != "admin"]
+        )
+        
+        if user_to_delete:
+            if st.button(f"Delete User '{user_to_delete}'"):
+                # Delete user
+                success = delete_user(user_to_delete)
+                
+                if success:
+                    st.success(f"User '{user_to_delete}' deleted successfully.")
+                    st.experimental_rerun()
+                else:
+                    st.error("Failed to delete user.")
+    else:
+        st.info("No users to delete.")
