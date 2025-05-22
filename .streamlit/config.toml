@@ -1,0 +1,6 @@
+[theme]
+primaryColor = "#0A59A9"          # KETOS Inc deep blue  
+backgroundColor = "#FFFFFF"      # white background  
+secondaryBackgroundColor = "#F0F2F6"  # light gray panels  
+textColor = "#000000"            # black text  
+font = "sans serif"             # default system font
