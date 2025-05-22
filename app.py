@@ -33,8 +33,8 @@ with st.sidebar:
     
     selected = option_menu(
         menu_title="Navigation",
-        options=["Job Setup", "Resume Upload", "Screening Dashboard", "User Management"],
-        icons=["briefcase", "upload", "table", "people"],
+        options=["Job Setup", "Resume Upload", "Screening Dashboard", "NLP Insights", "User Management"],
+        icons=["briefcase", "upload", "table", "graph-up", "people"],
         menu_icon="cast",
         default_index=0,
     )
@@ -49,6 +49,9 @@ elif selected == "Resume Upload":
 elif selected == "Screening Dashboard":
     from pages.dashboard import show_dashboard
     show_dashboard(username)
+elif selected == "NLP Insights":
+    from pages.nlp_insights import show_nlp_insights
+    show_nlp_insights(username)
 elif selected == "User Management":
     from pages.user_management import show_user_management
     show_user_management(username)
