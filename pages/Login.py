@@ -3,10 +3,10 @@ import streamlit_authenticator as stauth
 import yaml
 
 # Load authentication config from Streamlit secrets
-@st.cache(allow_output_mutation=True)
+@st.cache_data  # or @st.cache_resource if you prefer
 def load_auth_config():
-    # Secrets.toml should include a `credentials` section with hashed passwords
     return st.secrets["credentials"]
+
 
 
 def app():
